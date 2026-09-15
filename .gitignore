@@ -1,0 +1,23 @@
+# External test repositories (cloned during development)
+external/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Generated outputs
+demo_repo/
+*.html
+!predict/welcome.html
+
+# Word report (regenerable via scripts/make_report_docx.py)
+*.docx
+
+# Superbrain harness metadata
+.superbrain/
+
+# Environment
+.env
+.venv/
