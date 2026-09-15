@@ -74,42 +74,91 @@ def clone_to_temp(repo_url: str) -> tuple[str | None, str | None]:
 st.markdown(
     """
     <style>
-      .stApp { background: #0d1117; color: #e6edf3; }
-      h1 { color: #58a6ff; }
-      [data-testid="stMetricValue"] { color: #58a6ff; }
+      .stApp { background: #05070f; color: #e6edf3; }
+      #MainMenu, header, footer, [data-testid="stSidebar"],
+      [data-testid="stStatusWidget"], [data-testid="stToolbar"] { display: none; }
+      .block-container { padding-top: 1.2rem; max-width: 1200px; }
+      h1, h2, h3 { color: #e6edf3; }
+      [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p { color: #c9d1d9; }
       .stTabs [data-baseweb="tab"] { color: #8b949e; }
-      .stTabs [aria-selected="true"] { color: #58a6ff !important; }
+      .stTabs [aria-selected="true"] { color: #58a6ff !important;
+        border-color: #58a6ff !important; }
+
+      /* animated aurora background */
+      .stApp::before, .stApp::after {
+        content: ""; position: fixed; border-radius: 50%;
+        filter: blur(90px); opacity: .30; z-index: 0; pointer-events: none;
+      }
+      .stApp::before {
+        width: 55vw; height: 55vw; top: -20vw; left: -15vw;
+        background: radial-gradient(circle, #1f6feb 0%, transparent 70%);
+        animation: drift1 26s ease-in-out infinite alternate;
+      }
+      .stApp::after {
+        width: 50vw; height: 50vw; bottom: -22vw; right: -12vw;
+        background: radial-gradient(circle, #a371f7 0%, transparent 70%);
+        animation: drift2 32s ease-in-out infinite alternate;
+      }
+      @keyframes drift1 { to { transform: translate(9vw, 7vh) scale(1.15); } }
+      @keyframes drift2 { to { transform: translate(-8vw, -6vh) scale(1.2); } }
+
+      .bf-hero { text-align: center; padding: 3.2rem 0 1.4rem; position: relative; z-index: 1; }
+      .bf-logo {
+        font-size: 3.4rem; font-weight: 800; letter-spacing: -1px;
+        background: linear-gradient(92deg, #58a6ff, #a371f7, #58a6ff);
+        background-size: 220% auto; -webkit-background-clip: text;
+        background-clip: text; color: transparent;
+        animation: shimmer 7s linear infinite;
+      }
+      @keyframes shimmer { to { background-position: 220% center; } }
+      .bf-tag { color: #8b949e; font-size: 1.05rem; margin-top: .4rem; }
+      .bf-card {
+        background: rgba(22, 27, 34, .78); border: 1px solid #21262d;
+        border-radius: 14px; padding: 1.5rem 1.7rem; max-width: 640px;
+        margin: 1.6rem auto 0; box-shadow: 0 0 40px rgba(31,111,235,.12);
+        position: relative; z-index: 1;
+      }
+      .stApp > div { position: relative; z-index: 1; }
+      .stButton > button {
+        border-radius: 10px; font-weight: 600; border: 1px solid #21262d;
+      }
+      [data-testid="stForm"] { border: none; }
+      [data-baseweb="input"] > div { background: #0d1117 !important;
+        border-color: #30363d !important; color: #e6edf3 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("BugForecast")
-st.caption("Learns from a repository's own git history to flag which commits "
-           "and files are most likely to be defect-prone. Predictions are "
-           "probabilistic estimates, not certainties.")
+st.markdown("""
+<div class="bf-hero">
+  <div class="bf-logo">BugForecast</div>
+  <div class="bf-tag">Learns from a repository's own git history to flag which
+  commits and files are most likely to be defect-prone. Predictions are
+  probabilistic estimates, not certainties.</div>
+</div>
+""", unsafe_allow_html=True)
 
-with st.sidebar:
-    st.header("Analyze a repository")
-    mode = st.radio("Source", ["GitHub URL", "Local repository path"])
-    demo = st.button("Use demo repo (psf/requests)")
-
+with st.container():
+    st.markdown('<div class="bf-card">', unsafe_allow_html=True)
+    mode = st.selectbox("Source", ["GitHub URL", "Local repository path"],
+                        label_visibility="collapsed")
     url = path = None
-    if demo and not url:
-        url = "https://github.com/psf/requests.git"
-        st.info("Demo: psf/requests")
-    elif mode == "GitHub URL":
-        url = st.text_input("GitHub URL",
+    if mode == "GitHub URL":
+        url = st.text_input("GitHub URL", label_visibility="collapsed",
                             placeholder="https://github.com/owner/repo")
     else:
         path = st.text_input("Local path to a git repository",
+                             label_visibility="collapsed",
                              placeholder=r"C:\path\to\repo")
-    run_btn = st.button("Run analysis", type="primary", use_container_width=True)
-
-    st.divider()
-    st.caption("BugForecast needs >= 60 usable commits and >= 5 bug-fix style "
-               "commits to train. Local analysis only; no data leaves your machine.")
+    c_run, c_demo = st.columns([3, 2])
+    run_btn = c_run.button("Analyze", type="primary", use_container_width=True)
+    demo = c_demo.button("Try demo: psf/requests", use_container_width=True)
+    if demo and not url:
+        url = "https://github.com/psf/requests.git"
+    st.caption("Needs >= 60 usable commits and >= 5 bug-fix style commits to "
+               "train. Runs locally; no data leaves your machine.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if not run_btn:
-    st.info("Choose a repository in the sidebar and click **Run analysis**.")
     st.stop()
 
 repo_path: str | None = None
