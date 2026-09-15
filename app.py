@@ -77,7 +77,11 @@ st.markdown(
       .stApp { background: #05070f; color: #e6edf3; }
       #MainMenu, header, footer, [data-testid="stSidebar"],
       [data-testid="stStatusWidget"], [data-testid="stToolbar"] { display: none; }
-      .block-container { padding-top: 1.2rem; max-width: 1200px; }
+      .block-container { padding-top: 0; max-width: 1200px; }
+      .stApp { min-height: 100vh; display: flex; flex-direction: column; }
+      .stApp > div:first-child { flex: 0 0 auto; }
+      /* kill stray empty blocks / black rectangles */
+      .block-container > div:first-child, div[data-testid="stVerticalBlockBorderWrapper"]:has(> div:empty) { display: none; }
       h1, h2, h3 { color: #e6edf3; }
       [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p { color: #c9d1d9; }
       .stTabs [data-baseweb="tab"] { color: #8b949e; }
@@ -113,18 +117,33 @@ st.markdown(
       @keyframes shimmer { to { background-position: 220% center; } }
       .bf-tag { color: #8b949e; font-size: 1.05rem; margin-top: .4rem; }
       .bf-card {
-        background: rgba(22, 27, 34, .78); border: 1px solid #21262d;
-        border-radius: 14px; padding: 1.5rem 1.7rem; max-width: 640px;
-        margin: 1.6rem auto 0; box-shadow: 0 0 40px rgba(31,111,235,.12);
+        background: rgba(22, 27, 34, .55); border: 1px solid rgba(88,166,255,.18);
+        border-radius: 18px; padding: 2rem 2.2rem; max-width: 620px;
+        margin: 2.2rem auto 0; box-shadow: 0 0 60px rgba(31,111,235,.10);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
         position: relative; z-index: 1;
       }
+      .bf-demo {
+        text-align: center; margin-top: 1.1rem; font-size: .88rem;
+      }
+      .bf-demo a { color: #58a6ff; text-decoration: none; cursor: pointer; }
+      .bf-demo a:hover { text-decoration: underline; }
       .stApp > div { position: relative; z-index: 1; }
       .stButton > button {
-        border-radius: 10px; font-weight: 600; border: 1px solid #21262d;
+        border-radius: 12px; font-weight: 600; border: 1px solid #21262d;
       }
+      .bf-cta button {
+        background: linear-gradient(92deg, #1f6feb, #a371f7) !important;
+        border: none !important; color: #fff !important;
+        font-size: 1.02rem; padding: .55rem 1rem; border-radius: 12px !important;
+        box-shadow: 0 4px 24px rgba(31,111,235,.35);
+      }
+      .bf-cta button:hover { filter: brightness(1.12); }
       [data-testid="stForm"] { border: none; }
       [data-baseweb="input"] > div { background: #0d1117 !important;
-        border-color: #30363d !important; color: #e6edf3 !important; }
+        border-color: #30363d !important; color: #e6edf3 !important;
+        border-radius: 12px !important; padding: .35rem .8rem !important; }
+      [data-baseweb="input"] input { font-size: .98rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -139,21 +158,18 @@ st.markdown("""
 
 with st.container():
     st.markdown('<div class="bf-card">', unsafe_allow_html=True)
-    mode = st.selectbox("Source", ["GitHub URL", "Local repository path"],
-                        label_visibility="collapsed")
-    url = path = None
-    if mode == "GitHub URL":
+    with st.form(key="bf_form"):
         url = st.text_input("GitHub URL", label_visibility="collapsed",
                             placeholder="https://github.com/owner/repo")
-    else:
-        path = st.text_input("Local path to a git repository",
-                             label_visibility="collapsed",
-                             placeholder=r"C:\path\to\repo")
-    c_run, c_demo = st.columns([3, 2])
-    run_btn = c_run.button("Analyze", type="primary", use_container_width=True)
-    demo = c_demo.button("Try demo: psf/requests", use_container_width=True)
-    if demo and not url:
+        run_btn = st.form_submit_button("Analyze Repository", type="primary",
+                                        use_container_width=True)
+    demo = st.markdown('<div class="bf-demo">No repo handy? '
+                       '<a href="?demo=1">Try demo: psf/requests</a></div>',
+                       unsafe_allow_html=True)
+    if st.query_params.get("demo") == "1":
         url = "https://github.com/psf/requests.git"
+        run_btn = True
+        st.query_params.clear()
     st.caption("Needs >= 60 usable commits and >= 5 bug-fix style commits to "
                "train. Runs locally; no data leaves your machine.")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -178,15 +194,8 @@ if url:
             st.error(clone_err)
             st.stop()
         s.update(label="Cloned", state="complete")
-elif path:
-    repo_path = os.path.abspath(path.strip())
-    if not os.path.isdir(os.path.join(repo_path, ".git")):
-        st.error("That path does not look like a git repository "
-                 "(no .git directory found).")
-        st.stop()
-    repo_label = os.path.basename(repo_path)
 else:
-    st.warning("Enter a GitHub URL or a local repository path first.")
+    st.warning("Enter a GitHub URL first, e.g. https://github.com/psf/requests")
     st.stop()
 
 mtime = 0.0
